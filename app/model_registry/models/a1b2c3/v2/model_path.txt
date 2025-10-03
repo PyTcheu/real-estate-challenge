@@ -1,1 +1,0 @@
-/app/uploaded_pickle/model.pkl
