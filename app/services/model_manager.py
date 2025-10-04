@@ -111,14 +111,21 @@ class ModelRegistry:
     def __init__(self, registry_path: str):
         self.registry_path = registry_path
 
+        # Check if the registry file exists; if not, create it
+        if not os.path.exists(self.registry_path):
+            logger.info(f"Registry file not found at {self.registry_path}. Creating a new one.")
+            # Create an empty DataFrame with the required columns
+            columns = ["model_id", "model_name", "version", "features", "author", "pickle_path"]
+            empty_registry = pd.DataFrame(columns=columns)
+            empty_registry.to_csv(self.registry_path, index=False)
+            logger.info(f"Created new registry file at {self.registry_path}.")
+
     def get_next_version(self, model_id: str) -> str:
         """
         Get the next version for a given model ID.
         """
         registry = pd.read_csv(self.registry_path)
-        print(registry)
         model_versions = registry[registry["model_id"] == model_id]["version"]
-        print(model_versions)
         if model_versions.empty:
             # If no versions exist for this model ID, start with v1
             return "v1"

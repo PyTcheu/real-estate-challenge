@@ -1,17 +1,18 @@
-# Use an official Python runtime as a parent image
+# Use an official Python runtime as base image
 FROM python:3.9-slim
 
-# Set the working directory in the container
+# Set working directory
 WORKDIR /app
 
-# Copy the current directory contents into the container
+# Copy project files
 COPY . /app
 
-# Install any needed packages specified in requirements.txt
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port 5000 for the Flask app
-EXPOSE 5000
+# Expose ports for Streamlit and FastAPI
+EXPOSE 8000
+EXPOSE 8501
 
-# Run the application
+# Run both Streamlit and FastAPI via a Python runner
 CMD ["python", "app/app.py"]

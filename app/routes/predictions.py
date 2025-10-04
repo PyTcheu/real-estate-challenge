@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.schemas.prediction_schemas import PredictionInput
+from app.schemas.prediction_schemas import PredictionInput, AllFeaturesPredictionInput
 from app.utils.helpers import get_demographic_data
 import pandas as pd
 import pickle
@@ -31,11 +31,12 @@ def predict(model_id: str, input_data: PredictionInput):
         version = latest_model["version"]
         logger.info(f"Using model version: {version}")
 
-        # Load the appropriate model and features based on the version
         model_path = os.path.join("app/model_registry/models/", model_id, version, "model_path.txt")
         features_path = os.path.join("app/model_registry/models/", model_id, version, "model_features.json")
 
         # Read the model path from the text file (This could be getting from the S3)
+        # An S3 approach would be more complex and require boto3 or similar library
+        # But in terms of performance, it would be similar once the model is loaded into memory and best for horizontal scaling
         try:
             with open(model_path, "r") as path_file:
                 model_path = path_file.read().strip()
@@ -52,6 +53,80 @@ def predict(model_id: str, input_data: PredictionInput):
             raise HTTPException(status_code=500, detail=f"Model file not found at path: {model_path}")
 
         # Load the features
+        try:
+            with open(features_path, "r") as features_file:
+                model_features = json.load(features_file)
+        except FileNotFoundError:
+            logger.error(f"Features file not found at path: {features_path}")
+            raise HTTPException(status_code=500, detail=f"Features file not found at path: {features_path}")
+        
+        # Predicting after merging with demographic data
+        input_dict = input_data.dict()
+        input_df = pd.DataFrame([input_dict])
+        zipcode = input_dict["zipcode"]
+        demographic_data = get_demographic_data(zipcode)
+
+        if demographic_data is None:
+            logger.warning(f"No demographic data found for zipcode: {zipcode}")
+            raise HTTPException(status_code=400, detail=f"No demographic data found for zipcode: {zipcode}")
+
+        input_with_demographics = pd.concat([input_df, pd.DataFrame([demographic_data])], axis=1)
+
+        missing_features = [feature for feature in model_features if feature not in input_with_demographics.columns]
+        if missing_features:
+            logger.error(f"Missing required features: {missing_features}")
+            raise HTTPException(status_code=400, detail=f"Missing required features: {missing_features}")
+
+        input_with_demographics = input_with_demographics[model_features]
+        prediction = model.predict(input_with_demographics)
+        logger.info("Prediction successful")
+        return {"prediction": prediction.tolist()}
+
+    except Exception as e:
+        logger.exception("Error during prediction")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Assuming that the previous route can be flexible for handling different feature sets, we add another route for ALL_FEATURES
+# Only for demonstration; in practice, you might want to handle this differently.
+# In this case can also be used a different validation schema if needed.
+# Also, most of these method's code is duplicated, consider refactoring.
+
+@router.post("/all_features/{model_id}")
+def predict_all_features(model_id: str, input_data: AllFeaturesPredictionInput):
+    """
+    Endpoint for making predictions with the ALL_FEATURES model.
+    """
+    try:
+        logger.info(f"Received prediction request for ALL_FEATURES model ID: {model_id}")
+
+        # Fetch the latest version of the model
+        latest_model = model_registry.get_latest_version(model_id)
+        if not latest_model:
+            logger.error(f"No model found with ID: {model_id}")
+            raise HTTPException(status_code=404, detail=f"No model found with ID: {model_id}")
+
+        version = latest_model["version"]
+        logger.info(f"Using model version: {version}")
+
+        # Load the appropriate model and features based on the version
+        model_path = os.path.join("app/model_registry/models/", model_id, version, "model_path.txt")
+        features_path = os.path.join("app/model_registry/models/", model_id, version, "model_features.json")
+
+        try:  # Debugging print
+            with open(model_path, "r") as path_file:
+                model_path = path_file.read().strip()
+        except FileNotFoundError:
+            logger.error(f"Model path file not found at path: {model_path}")
+            raise HTTPException(status_code=500, detail=f"Model path file not found at path: {model_path}")
+
+        try:
+            with open(model_path, "rb") as model_file:
+                 # Debugging print
+                model = pickle.load(model_file)
+        except FileNotFoundError:
+            logger.error(f"Model file not found at path: {model_path}")
+            raise HTTPException(status_code=500, detail=f"Model file not found at path: {model_path}")
+
         try:
             with open(features_path, "r") as features_file:
                 model_features = json.load(features_file)
