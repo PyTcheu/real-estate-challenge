@@ -1,19 +1,18 @@
 import streamlit as st
 import pandas as pd
-import pathlib
-
+from pathlib import Path
 
 st.set_page_config(page_title="Model metrics", page_icon="🔧", layout="wide")
-
 st.title("🔧 Model Training Results")
 
-metrics_path = pathlib.Path("new_model/training_metrics.csv")
+BASE_DIR = Path(__file__).parent.parent  # go up one level to `app/`
+metrics_path = BASE_DIR / "new_model" / "training_metrics.csv"
 
 if not metrics_path.exists():
     st.warning("⚠️ No training results found. Run `create_new_model.py` first to generate metrics.")
 else:
-    
     metrics_df = pd.read_csv(metrics_path)
+
 
     st.subheader("📊 Model Comparison")
     st.write("Below you can see how each model performed when trained with different types of information:")
