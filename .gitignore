@@ -4,3 +4,7 @@ __pycache__/
 .DS_Store
 env/
 app/models/
+
+# ignore models 
+new_model/
+model_registry/

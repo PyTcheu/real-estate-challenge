@@ -4,6 +4,7 @@ import pandas as pd
 import json
 
 # Create new model via api
+
 requests.post("http://127.0.0.1:5000/models/", json={
     "model_id": "real_estate_model",
     "model_name": "Real Estate Price Predictor",

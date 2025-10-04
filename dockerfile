@@ -10,9 +10,6 @@ COPY . /app
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose ports for Streamlit and FastAPI
-EXPOSE 8000
-EXPOSE 8501
+EXPOSE 8000 8501
 
-# Run both Streamlit and FastAPI via a Python runner
-CMD ["python", "app/app.py"]
+CMD ["python", "run_services.py"]

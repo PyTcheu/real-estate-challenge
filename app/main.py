@@ -52,9 +52,9 @@ if st.button("Predict"):
         "zipcode": zipcode
     }
 
-    # Send POST request to Flask API
+    # Send POST request to Fast API
     try:
-        base_url = f"http://127.0.0.1:5000/"
+        base_url = f"http://127.0.0.1:8000/"
         url = f"{base_url}predictions/real_estate_model"
 
         response = requests.post(url, json=input_data)
