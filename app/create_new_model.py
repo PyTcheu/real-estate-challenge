@@ -86,6 +86,9 @@ def main():
     print("\n=== Model Comparison ===")
     print(metrics_df.pivot(index="Model", columns="Feature_Set", values=["MAE","MSE","R2"]))
 
+    # save training results into a CSV file
+    metrics_df.to_csv(pathlib.Path(OUTPUT_DIR) / "training_metrics.csv", index=False)
+
     # Code for selecting and saving the best model as artifacts
     best_row = metrics_df.sort_values("R2", ascending=False).iloc[0]
     best_feature_set = SALES_COLUMN_SELECTION if best_row["Feature_Set"] == "Sales_Subset" else ALL_FEATURES
